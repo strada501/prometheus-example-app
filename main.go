@@ -44,19 +44,13 @@ func main() {
 	r.MustRegister(version)
 
 	foundHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello from example application."))
+		w.WriteHeader(http.StatusInternalServerError)
 	})
 	notfoundHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	foundChain := promhttp.InstrumentHandlerDuration(
-		httpRequestDuration.MustCurryWith(prometheus.Labels{"handler": "found"}),
-		promhttp.InstrumentHandlerCounter(httpRequestsTotal, foundHandler),
-	)
-
-	http.Handle("/", foundChain)
+	http.Handle("/", promhttp.InstrumentHandlerCounter(httpRequestsTotal, foundHandler))
 	http.Handle("/err", promhttp.InstrumentHandlerCounter(httpRequestsTotal, notfoundHandler))
 
 	http.Handle("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}))
